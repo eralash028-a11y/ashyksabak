@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Үш зертхана — Интерактивті тақта</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #060b16;
+      color: #f8fafc;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    }
+
+    .app-shell {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 12px;
+      gap: 10px;
+      background: radial-gradient(circle at 50% 0%, #0f172a 0%, #060b16 75%);
+    }
+
+    /* Жоғарғы панель */
+    .top-bar {
+      height: 44px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 12px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.75);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: #f8fafc;
+    }
+
+    .btn {
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 10px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: rgba(30, 41, 59, 0.9);
+      color: #cbd5e1;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+    }
+
+    .btn:hover {
+      background: #334155;
+      color: #ffffff;
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Жоғарғы 65%: 3 зертхана бағаны */
+    .zones-container {
+      flex: 65;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .lab-zone {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    /* 1-зертхана: Қызыл-қызғылт CSS фоны */
+    .lab-zone[data-zone-index="0"] {
+      background: linear-gradient(180deg, #fecdd3 0%, #fda4af 62%, #f43f5e 62%, #e11d48 100%);
+      border: 4px solid #fb7185;
+      box-shadow: 0 8px 24px rgba(244, 63, 94, 0.25);
+    }
+
+    /* 2-зертхана: Көк-көгілдір CSS фоны */
+    .lab-zone[data-zone-index="1"] {
+      background: linear-gradient(180deg, #bae6fd 0%, #7dd3fc 62%, #0284c7 62%, #0369a1 100%);
+      border: 4px solid #38bdf8;
+      box-shadow: 0 8px 24px rgba(14, 165, 233, 0.25);
+    }
+
+    /* 3-зертхана: Күлгін CSS фоны */
+    .lab-zone[data-zone-index="2"] {
+      background: linear-gradient(180deg, #e9d5ff 0%, #d8b4fe 62%, #9333ea 62%, #7e22ce 100%);
+      border: 4px solid #c084fc;
+      box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25);
+    }
+
+    .zone-visual {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .zone-visual svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .zone-frosted-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: linear-gradient(
+        180deg,
+        rgba(6, 11, 22, 0.16) 0%,
+        rgba(6, 11, 22, 0.28) 100%
+      );
+      transition: background 0.16s ease;
+    }
+
+    .lab-zone.random-highlight {
+      box-shadow: 0 0 0 4px #fde047, 0 14px 32px rgba(0, 0, 0, 0.55);
+    }
+
+    .zone-inner {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      gap: 8px;
+    }
+
+    .zone-header {
+      padding: 9px 12px;
+      border-radius: 12px;
+      background: rgba(9, 14, 28, 0.84);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .zone-drop-area {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 10px;
+      padding: 4px;
+    }
+
+    /* Төменгі 35%: Оқушылар панелі */
+    .dock-container {
+      flex: 35;
+      min-height: 0;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1.5px solid rgba(148, 163, 184, 0.22);
+      border-radius: 16px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dock-drop-area {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      justify-content: center;
+      gap: 10px;
+      padding: 2px;
+    }
+
+    /* 108px x 108px шаршы карточка */
+    .square-tile {
+      width: 108px;
+      height: 108px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid rgba(248, 250, 252, 0.45);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8px;
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 700;
+      color: #f8fafc;
+      cursor: pointer;
+      touch-action: manipulation;
+      word-break: break-word;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, transform 0.15s ease, opacity 0.2s ease;
+    }
+
+    .dock-drop-area .square-tile:hover {
+      border-color: #38bdf8;
+      background: rgba(30, 41, 59, 0.98);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4), 0 8px 18px rgba(0, 0, 0, 0.5);
+    }
+
+    .square-tile.locked {
+      cursor: default;
+      border-color: rgba(255, 255, 255, 0.65);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    .square-tile.picked-pop {
+      transform: scale(1.08);
+      border-color: #fde047;
+      box-shadow: 0 0 0 3px rgba(253, 224, 71, 0.55), 0 10px 22px rgba(0, 0, 0, 0.55);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1 class="brand-title">ҮШ ЗЕРТХАНА   by ErnurAbdesh</h1>
+      </div>
+
+      <button id="resetTilesBtn" type="button" class="btn">
+        Қайтару
+      </button>
+    </header>
+
+    <main class="zones-container">
+      <!-- 1. ҚЫШҚЫЛДЫҚ ОРТА ЗЕРТХАНАСЫ (HCl) -->
+      <section class="lab-zone" data-zone-index="0">
+        <div class="zone-visual">
+          <svg viewBox="0 0 600 520" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="300" cy="245" r="155" fill="#fff1f2" fill-opacity="0.55" />
+            <g stroke="#4c0519" stroke-width="5" stroke-linecap="round">
+              <line x1="125" y1="215" x2="170" y2="185" />
+              <line x1="125" y1="215" x2="135" y2="268" />
+            </g>
+            <circle cx="125" cy="215" r="20" fill="#e11d48" stroke="#4c0519" stroke-width="4" />
+            <circle cx="170" cy="185" r="13" fill="#fb7185" stroke="#4c0519" stroke-width="4" />
+            <circle cx="135" cy="268" r="13" fill="#fb7185" stroke="#4c0519" stroke-width="4" />
+            <g stroke="#0c4a6e" stroke-width="5" stroke-linecap="round">
+              <line x1="472" y1="205" x2="428" y2="175" />
+              <line x1="472" y1="205" x2="484" y2="255" />
+            </g>
+            <circle cx="472" cy="205" r="20" fill="#0284c7" stroke="#0c4a6e" stroke-width="4" />
+            <circle cx="428" cy="175" r="13" fill="#38bdf8" stroke="#0c4a6e" stroke-width="4" />
+            <circle cx="484" cy="255" r="13" fill="#38bdf8" stroke="#0c4a6e" stroke-width="4" />
+            <circle cx="288" cy="112" r="11" fill="#fb7185" stroke="#881337" stroke-width="3" />
+            <circle cx="320" cy="86" r="15" fill="#f43f5e" stroke="#881337" stroke-width="3" />
+            <circle cx="304" cy="142" r="8" fill="#fda4af" stroke="#881337" stroke-width="3" />
+            <path d="M274 162 L326 162 L326 208 L398 356 Q405 372 387 372 L213 372 Q195 372 202 356 L274 208 Z"
+                  fill="#ffffff" fill-opacity="0.95" stroke="#881337" stroke-width="7" stroke-linejoin="round" />
+            <path d="M236 286 L364 286 L389 354 Q393 364 381 364 L219 364 Q207 364 211 354 Z"
+                  fill="#f43f5e" />
+            <rect x="266" y="148" width="68" height="17" rx="7" fill="#fecdd3" stroke="#881337" stroke-width="5" />
+            <circle cx="268" cy="328" r="9" fill="#ffe4e6" />
+            <circle cx="312" cy="312" r="12" fill="#ffe4e6" />
+            <circle cx="332" cy="342" r="7" fill="#ffe4e6" />
+          </svg>
+        </div>
+        <div class="zone-frosted-overlay"></div>
+
+        <div class="zone-inner">
+          <div class="zone-header">1. Қышқылдық орта зертханасы (HCl)</div>
+          <div class="zone-drop-area" id="zone-0"></div>
+        </div>
+      </section>
+
+      <!-- 2. СІЛТІЛІК ОРТА ЗЕРТХАНАСЫ (NaOH) -->
+      <section class="lab-zone" data-zone-index="1">
+        <div class="zone-visual">
+          <svg viewBox="0 0 600 520" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="300" cy="255" r="155" fill="#f0f9ff" fill-opacity="0.58" />
+            <text x="335" y="142" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="800" fill="#0c4a6e">
+              OH<tspan dy="-18" font-size="28">+</tspan>
+            </text>
+            <path d="M202 172 L398 172 L383 375 Q381 390 365 390 L235 390 Q219 390 217 375 Z"
+                  fill="#ffffff" fill-opacity="0.95" stroke="#0c4a6e" stroke-width="7" stroke-linejoin="round" />
+            <path d="M210 264 L390 264 L378 372 Q377 383 365 383 L235 383 Q223 383 222 372 Z"
+                  fill="#0ea5e9" />
+            <line x1="190" y1="172" x2="212" y2="172" stroke="#0c4a6e" stroke-width="7" stroke-linecap="round" />
+            <line x1="388" y1="172" x2="410" y2="172" stroke="#0c4a6e" stroke-width="7" stroke-linecap="round" />
+            <line x1="224" y1="220" x2="252" y2="220" stroke="#0369a1" stroke-width="4" stroke-linecap="round" />
+            <line x1="227" y1="298" x2="255" y2="298" stroke="#e0f2fe" stroke-width="4" stroke-linecap="round" />
+            <line x1="230" y1="338" x2="258" y2="338" stroke="#e0f2fe" stroke-width="4" stroke-linecap="round" />
+            <text x="328" y="346" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="800" fill="#e0f2fe">
+              <tspan dy="-18" font-size="30">-</tspan><tspan dy="18">OH</tspan>
+            </text>
+          </svg>
+        </div>
+        <div class="zone-frosted-overlay"></div>
+
+        <div class="zone-inner">
+          <div class="zone-header">2. Сілтілік орта зертханасы (NaOH)</div>
+          <div class="zone-drop-area" id="zone-1"></div>
+        </div>
+      </section>
+
+      <!-- 3. ИНДИКАТОР ЗЕРТХАНАСЫ (ГЛИЦИН ЕРІТІНДІСІ) -->
+      <section class="lab-zone" data-zone-index="2">
+        <div class="zone-visual">
+          <svg viewBox="0 0 600 520" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="300" cy="255" r="155" fill="#faf5ff" fill-opacity="0.58" />
+            <g transform="translate(375 92) rotate(32)">
+              <rect x="0" y="0" width="32" height="48" rx="15" fill="#7e22ce" stroke="#3b0764" stroke-width="6" />
+              <rect x="7" y="45" width="18" height="82" rx="5" fill="#f3e8ff" stroke="#3b0764" stroke-width="6" />
+              <polygon points="8,125 24,125 16,148" fill="#d946ef" stroke="#3b0764" stroke-width="5" stroke-linejoin="round" />
+            </g>
+            <circle cx="336" cy="212" r="8" fill="#c026d3" />
+            <rect x="206" y="226" width="46" height="148" rx="23" fill="#ffffff" fill-opacity="0.95" stroke="#3b0764" stroke-width="6" />
+            <path d="M210 296 L248 296 L248 351 A19 19 0 0 1 210 351 Z" fill="#f43f5e" />
+
+            <rect x="277" y="226" width="46" height="148" rx="23" fill="#ffffff" fill-opacity="0.95" stroke="#3b0764" stroke-width="6" />
+            <path d="M281 282 L319 282 L319 351 A19 19 0 0 1 281 351 Z" fill="#a855f7" />
+
+            <rect x="348" y="226" width="46" height="148" rx="23" fill="#ffffff" fill-opacity="0.95" stroke="#3b0764" stroke-width="6" />
+            <path d="M352 308 L390 308 L390 351 A19 19 0 0 1 352 351 Z" fill="#7e22ce" />
+
+            <line x1="182" y1="382" x2="418" y2="382" stroke="#3b0764" stroke-width="7" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="zone-frosted-overlay"></div>
+
+        <div class="zone-inner">
+          <div class="zone-header">3. Индикатор зертханасы (глицин ерітіндісі)</div>
+          <div class="zone-drop-area" id="zone-2"></div>
+        </div>
+      </section>
+    </main>
+
+    <section class="dock-container">
+      <div class="dock-drop-area" id="dock"></div>
+    </section>
+  </div>
+
+  <script>
+    const SQUARE_NAMES = [
+      "Ернұр Абдеш",
+      "Арсен Әділхан",
+      "Төрехан Магпор",
+      "Алтынбек Төлекбай",
+      "Камилла Мырзабек",
+      "Наргиз Мирбекқызы",
+      "Мадина Рысқали",
+      "Мирас Сұлтан",
+      "Раһим Орынбасар",
+      "Жаннұр Зинолла",
+      "Ясмина Шалхар",
+      "Жандарбек Эльбрус",
+      "Нұрсұлтан Марат",
+      "Әли Олжабай",
+      "Нұрай Еркебай",
+      "Бекет Памир",
+      "Асылай Болатқалиева",
+      "Зейнепкайров Ералы",
+      "Кусайн Арай",
+      "Бауыржан Нуриден",
+      "Темыржан Райымбек",
+      "Нурлыбекулы Муслим",
+      "Ерсын Диана",
+      "Сулейменова Гулназ",
+      "Марал Эльмар"
+    ];
+
+    const ZONE_IDS = ["zone-0", "zone-1", "zone-2"];
+    const zoneContainers = ZONE_IDS.map((id) => document.getElementById(id));
+    const dockContainer = document.getElementById("dock");
+    const zoneSections = Array.from(document.querySelectorAll(".lab-zone"));
+
+    function pickBalancedRandomTeamIndex() {
+      const counts = zoneContainers.map((container) => container.children.length);
+      const minCount = Math.min(...counts);
+      const leastLoadedIndices = counts
+        .map((count, idx) => (count === minCount ? idx : -1))
+        .filter((idx) => idx !== -1);
+
+      const randomPos = Math.floor(Math.random() * leastLoadedIndices.length);
+      return leastLoadedIndices[randomPos];
+    }
+
+    function assignTileToRandomTeam(tile) {
+      if (tile.dataset.assigned === "true") return;
+
+      const chosenIndex = pickBalancedRandomTeamIndex();
+      zoneContainers[chosenIndex].appendChild(tile);
+      tile.dataset.assigned = "true";
+      tile.classList.add("locked");
+
+      tile.classList.remove("picked-pop");
+      void tile.offsetWidth;
+      tile.classList.add("picked-pop");
+      setTimeout(() => tile.classList.remove("picked-pop"), 320);
+
+      const targetSection = zoneSections[chosenIndex];
+      if (targetSection) {
+        targetSection.classList.remove("random-highlight");
+        void targetSection.offsetWidth;
+        targetSection.classList.add("random-highlight");
+        setTimeout(() => targetSection.classList.remove("random-highlight"), 420);
+      }
+    }
+
+    function createSquareTile(name) {
+      const tile = document.createElement("div");
+      tile.className = "square-tile";
+      tile.textContent = name;
+      tile.dataset.assigned = "false";
+      tile.addEventListener("click", () => assignTileToRandomTeam(tile));
+      return tile;
+    }
+
+    function populateDock() {
+      dockContainer.innerHTML = "";
+      SQUARE_NAMES.forEach((name) => {
+        dockContainer.appendChild(createSquareTile(name));
+      });
+    }
+
+    document.getElementById("resetTilesBtn").addEventListener("click", () => {
+      const allTiles = Array.from(document.querySelectorAll(".square-tile"));
+      allTiles.forEach((tile) => {
+        tile.dataset.assigned = "false";
+        tile.classList.remove("locked", "picked-pop");
+        dockContainer.appendChild(tile);
+      });
+    });
+
+    populateDock();
+  </script>
+</body>
+</html>
